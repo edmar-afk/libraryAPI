@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Librarian, Visitors
+from .models import Librarian, Visit
 
 class LibrarianSerializer(ModelSerializer):
     class Meta:
@@ -9,5 +9,5 @@ class LibrarianSerializer(ModelSerializer):
         
 class VisitorSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Visitors
-        fields = ('id', 'ip_address', 'user_agent', 'timestamp', 'anonymous_uuid')
+        model = Visit
+        fields = '__all__'

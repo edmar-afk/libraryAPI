@@ -1,5 +1,9 @@
 from django.db import models
 from django.core.validators import FileExtensionValidator
+import uuid
+from django.utils import timezone
+now = timezone.now()
+currentDate = now.date()
 
 
 class Librarian(models.Model):
@@ -22,8 +26,13 @@ class Librarian(models.Model):
     def __str__(self):
         return f'Librarian - {self.name}'
  
-class Visitors(models.Model):
+class Visit(models.Model):
     ip_address = models.GenericIPAddressField()
     user_agent = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=False)
     anonymous_uuid = models.UUIDField(null=True, blank=True, unique=True)
+
+    @classmethod
+    def create(cls, ip_address, user_agent, timestamp):
+        anonymous_uuid = uuid.uuid4()
+        return cls(ip_address=ip_address, user_agent=user_agent, anonymous_uuid=anonymous_uuid, timestamp=timestamp)

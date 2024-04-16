@@ -1,15 +1,16 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics
-from .models import Librarian, Visitors
+from .models import Librarian, Visit
 from .serializers import LibrarianSerializer, VisitorSerializer
 from rest_framework.permissions import AllowAny
-from datetime import datetime
 from django.http import Http404
-from django.db.models import Count
+from django.db.models import Count, Q
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-
+from django.utils import timezone
+from django.http import JsonResponse
+from datetime import timedelta
 # Create your views here.
 class LibrarianViewSet(viewsets.ModelViewSet): 
     queryset = Librarian.objects.all()
@@ -39,20 +40,82 @@ class CanutoLibrarians(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     
 
-class VisitorCount(APIView):
-    def post(self, request):
-        ip_address = request.data.get('ip_address')
-        user_agent = request.data.get('user_agent')
-        anonymous_uuid = request.data.get('anonymous_uuid')
-        today = datetime.now().date()
+class VisitViewSet(viewsets.ModelViewSet):
+    queryset = Visit.objects.all()
+    serializer_class = VisitorSerializer
+    permission_classes = [AllowAny]
 
-        # Check if a visitor with the same IP address and date already exists
-        visitor_exists = Visitors.objects.filter(ip_address=ip_address, timestamp__date=today).exists()
+    def create(self, request):
+        ip_address = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
 
-        if not visitor_exists:
-            # Create a new visitor
-            visitor = Visitors.objects.create(ip_address=ip_address, user_agent=user_agent, anonymous_uuid=anonymous_uuid)
-            visitor.save()
-            return Response({'message': 'Visitor recorded successfully.'}, status=status.HTTP_201_CREATED)
+        # Get today's date at midnight (00:00:00) using timezone.now().date()
+        today_start = timezone.now().date()
+
+        # Filter visits for today's IP and user agent
+        existing_visit = Visit.objects.filter(
+            ip_address=ip_address,
+            user_agent=user_agent,
+            timestamp__date=today_start
+        ).first()
+
+        if existing_visit:
+            return Response({'status': 'failure', 'message': 'User already visited today'})
         else:
-            return Response({'message': 'Visitor already recorded today.'}, status=status.HTTP_200_OK)
+            new_visit = Visit.objects.create(ip_address=ip_address, user_agent=user_agent, timestamp=today_start)
+            new_visit.save()
+            return Response({'status': 'success', 'message': 'Website visited'})
+
+
+class VisitByMonthViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    def list(self, request, month=None):
+        if month is None:
+            return JsonResponse({'error': 'Month parameter is required'}, status=400)
+
+        # Query the database to get visits for the specified month
+        visits = Visit.objects.filter(timestamp__month=month)
+
+        # Serialize the data
+        serializer = VisitorSerializer(visits, many=True)
+
+        return JsonResponse(serializer.data, safe=False)
+
+
+class VisitByYearViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    def list(self, request, year=None):
+        if year is None:
+            return JsonResponse({'error': 'Year parameter is required'}, status=400)
+
+        # Query the database to get visits for the specified year
+        visits = Visit.objects.filter(timestamp__year=year)
+
+        # Serialize the data
+        serializer = VisitorSerializer(visits, many=True)
+
+        return JsonResponse(serializer.data, safe=False)
+    
+
+
+class VisitByDayViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    def list(self, request, year=None, month=None, day=None):
+        if year is None or month is None or day is None:
+            return JsonResponse({'error': 'Year, month, and day parameters are required'}, status=400)
+
+        # Construct timezone-aware datetime object for the specified year, month, and day
+        date = timezone.datetime(int(year), int(month), int(day), tzinfo=timezone.get_current_timezone())
+
+        # Construct start and end datetime objects for the specified day
+        start_datetime = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_datetime = start_datetime + timedelta(days=1) - timedelta(microseconds=1)
+
+        # Filter visits for the specified date range (from start of the day to end of the day)
+        visits = Visit.objects.filter(timestamp__range=(start_datetime, end_datetime))
+
+        serializer = VisitorSerializer(visits, many=True)
+        return JsonResponse(serializer.data, safe=False)
