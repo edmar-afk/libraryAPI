@@ -36,3 +36,9 @@ class Visit(models.Model):
     def create(cls, ip_address, user_agent, timestamp):
         anonymous_uuid = uuid.uuid4()
         return cls(ip_address=ip_address, user_agent=user_agent, anonymous_uuid=anonymous_uuid, timestamp=timestamp)
+    
+class Booking(models.Model):
+    event = models.CharField(max_length=250)
+    month = models.DateField()
+    startDatetime = models.TimeField()
+    endDatetime = models.TimeField()

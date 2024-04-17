@@ -9,6 +9,7 @@ router.register(r'dumingag', views.DumingagLibrarians, basename='dumingag')
 router.register(r'pagadian', views.PagadianLibrarians, basename='pagadian')
 router.register(r'canuto', views.CanutoLibrarians, basename='canuto')
 router.register(r'visits', views.VisitViewSet, basename='visits')
+router.register(r'booking', views.BookingViewSet, basename='booking')
 urlpatterns = [
     # Your existing paths can go here if needed
     path('', include(router.urls)),

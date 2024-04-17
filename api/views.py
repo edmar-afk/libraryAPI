@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, generics
-from .models import Librarian, Visit
-from .serializers import LibrarianSerializer, VisitorSerializer
+from .models import Librarian, Visit, Booking
+from .serializers import LibrarianSerializer, VisitorSerializer, BookingSerializer
 from rest_framework.permissions import AllowAny
 from django.http import Http404
 from django.db.models import Count, Q
@@ -37,6 +37,11 @@ class PagadianLibrarians(viewsets.ModelViewSet):
 class CanutoLibrarians(viewsets.ModelViewSet):
     queryset = Librarian.objects.filter(site='Canuto')
     serializer_class = LibrarianSerializer
+    permission_classes = [AllowAny]
+
+class BookingViewSet(viewsets.ModelViewSet):
+    queryset = Booking.objects.all()
+    serializer_class = BookingSerializer
     permission_classes = [AllowAny]
     
 
