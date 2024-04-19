@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
-from .models import Librarian, Visit, Booking
+from .models import Librarian, Booking
+from django.utils.html import format_html
 
 class CustomTimeInput(forms.TimeInput):
     input_type = 'time'
@@ -24,5 +25,12 @@ class BookingAdmin(admin.ModelAdmin):
 admin.site.register(Booking, BookingAdmin)
 
 
-admin.site.register(Librarian)
-admin.site.register(Visit)
+class LibrarianAdmin(admin.ModelAdmin):
+    list_display = ('id', 'display_image', 'name', 'position', 'email', 'site', 'is_librarian_head', 'facebook_link')  
+    list_filter = ('is_librarian_head', 'site')  
+
+    def display_image(self, obj):
+        return format_html('<img src="{}" style="max-height: 50px; max-width: 50px; border-radius:50%;" />', obj.user_image.url)
+    display_image.short_description = 'Image'
+
+admin.site.register(Librarian, LibrarianAdmin)
